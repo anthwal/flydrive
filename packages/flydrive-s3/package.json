@@ -37,6 +37,7 @@
   "devDependencies": {
     "@slynova/flydrive": "^1.0.3",
     "@types/fs-extra": "^9.0.7",
+    "@types/node": "^22.14.0",
     "fs-extra": "^9.1.0"
   },
   "publishConfig": {
