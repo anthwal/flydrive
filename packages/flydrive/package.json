@@ -2,7 +2,7 @@
   "name": "@slynova/flydrive",
   "version": "1.0.3",
   "description": "Flexible and Fluent way to manage storage in Node.js.",
-  "homepage": "https://github.com/Slynova-Org/flydrive#readme",
+  "homepage": "https://github.com/anthwal/flydrive#readme",
   "license": "MIT",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -21,29 +21,28 @@
   "author": "Romain Lanz <romain.lanz@slynova.ch>",
   "contributors": [
     "Harminder Virk <virk@adonisjs.com>",
-    "Michaël Zasso <targos@pm.me>"
+    "Michaël Zasso <targos@pm.me>",
+    "Arun Anthwal"
   ],
   "files": [
     "build"
   ],
-  "scripts": {
-    "prepare": "tsc -b tsconfig.json"
-  },
   "dependencies": {
     "fs-extra": "^9.1.0",
     "node-exceptions": "^4.0.1"
   },
   "devDependencies": {
-    "@types/fs-extra": "^9.0.7"
+    "@types/fs-extra": "^9.0.7",
+    "@types/node": "^22.14.0"
   },
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Slynova-Org/flydrive.git"
+    "url": "git+https://github.com/anthwal/flydrive.git"
   },
   "bugs": {
-    "url": "https://github.com/Slynova-Org/flydrive/issues"
+    "url": "https://github.com/anthwal/flydrive/issues"
   }
 }

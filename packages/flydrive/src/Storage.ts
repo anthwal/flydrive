@@ -111,13 +111,16 @@ export default abstract class Storage {
    *
    * Supported drivers: "local", "s3", "gcs"
    */
-  getStream(location: string): NodeJS.ReadableStream {
+  getStream(
+    location: string,
+    opts: { partial?: boolean } = { partial: false },
+  ): NodeJS.ReadableStream {
     throw new MethodNotSupported('getStream', this.constructor.name);
   }
 
   /**
    * Returns url for a given key. Note this method doesn't
-   * validates the existence of file or it's visibility
+   * validate the existence of file, or it's visibility
    * status.
    *
    * Supported drivers: "s3", "gcs"

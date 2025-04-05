@@ -58,7 +58,7 @@ export interface SignedUrlResponse extends Response {
 
 export interface StatResponse extends Response {
   size: number;
-  modified: Date;
+  modified?: Date;
 }
 
 export interface FileListResponse extends Response {

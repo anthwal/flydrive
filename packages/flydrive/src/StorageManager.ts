@@ -14,34 +14,34 @@ import {
   StorageManagerSingleDiskConfig,
 } from './types';
 
-interface StorageConstructor<T extends Storage = Storage> {
-  new (...args: any[]): T;
-}
+type StorageConstructor<T extends Storage = Storage> = new (
+  ...args: any[]
+) => T;
 
 export default class StorageManager {
   /**
    * Default disk.
    */
-  private defaultDisk: string | undefined;
+  readonly #defaultDisk: string | undefined;
 
   /**
    * Configured disks.
    */
-  private disksConfig: StorageManagerDiskConfig;
+  readonly #disksConfig: StorageManagerDiskConfig;
 
   /**
    * Instantiated disks.
    */
-  private _disks: Map<string, Storage> = new Map();
+  readonly #disks: Map<string, Storage> = new Map();
 
   /**
    * List of available drivers.
    */
-  private _drivers: Map<string, StorageConstructor<Storage>> = new Map();
+  readonly #drivers: Map<string, StorageConstructor<Storage>> = new Map();
 
   constructor(config: StorageManagerConfig) {
-    this.defaultDisk = config.default;
-    this.disksConfig = config.disks || {};
+    this.#defaultDisk = config.default;
+    this.#disksConfig = config.disks || {};
     this.registerDriver('local', LocalFileSystemStorage);
   }
 
@@ -49,21 +49,21 @@ export default class StorageManager {
    * Get the instantiated disks
    */
   getDisks(): Map<string, Storage> {
-    return this._disks;
+    return this.#disks;
   }
 
   /**
    * Get the registered drivers
    */
   getDrivers(): Map<string, StorageConstructor<Storage>> {
-    return this._drivers;
+    return this.#drivers;
   }
 
   /**
    * Get a disk instance.
    */
   disk<T extends Storage = Storage>(name?: string): T {
-    name = name || this.defaultDisk;
+    name = name ?? this.#defaultDisk;
 
     /**
      * No name is defined and neither there
@@ -73,11 +73,11 @@ export default class StorageManager {
       throw InvalidConfig.missingDiskName();
     }
 
-    if (this._disks.has(name)) {
-      return this._disks.get(name) as T;
+    if (this.#disks.has(name)) {
+      return this.#disks.get(name) as T;
     }
 
-    const diskConfig = this.disksConfig[name];
+    const diskConfig = this.#disksConfig[name];
 
     /**
      * Configuration for the defined disk is missing
@@ -93,21 +93,21 @@ export default class StorageManager {
       throw InvalidConfig.missingDiskDriver(name);
     }
 
-    const Driver = this._drivers.get(diskConfig.driver);
+    const Driver = this.#drivers.get(diskConfig.driver);
     if (!Driver) {
       throw DriverNotSupported.driver(diskConfig.driver);
     }
 
     const disk = new Driver(diskConfig.config);
-    this._disks.set(name, disk);
+    this.#disks.set(name, disk);
     return disk as T;
   }
 
   addDisk(name: string, config: StorageManagerSingleDiskConfig): void {
-    if (this.disksConfig[name]) {
+    if (this.#disksConfig[name]) {
       throw InvalidConfig.duplicateDiskName(name);
     }
-    this.disksConfig[name] = config;
+    this.#disksConfig[name] = config;
   }
 
   /**
@@ -117,6 +117,6 @@ export default class StorageManager {
     name: string,
     driver: StorageConstructor<T>,
   ): void {
-    this._drivers.set(name, driver);
+    this.#drivers.set(name, driver);
   }
 }

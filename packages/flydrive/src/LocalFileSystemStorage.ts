@@ -6,8 +6,8 @@
  */
 
 import * as fse from 'fs-extra';
-import { promises as fs } from 'fs';
-import { dirname, join, resolve, relative, sep } from 'path';
+import { opendir } from 'node:fs/promises';
+import { dirname, join, resolve, relative, sep } from 'node:path';
 import Storage from './Storage';
 import { isReadableStream, pipeline } from './utils';
 import {
@@ -39,18 +39,18 @@ function handleError(
 }
 
 export class LocalFileSystemStorage extends Storage {
-  private $root: string;
+  readonly #root: string;
 
   constructor(config: LocalFileSystemStorageConfig) {
     super();
-    this.$root = resolve(config.root);
+    this.#root = resolve(config.root);
   }
 
   /**
    * Returns full path relative to the storage's root directory.
    */
-  private _fullPath(relativePath: string): string {
-    return join(this.$root, join(sep, relativePath));
+  #fullPath(relativePath: string): string {
+    return join(this.#root, join(sep, relativePath));
   }
 
   /**
@@ -61,9 +61,9 @@ export class LocalFileSystemStorage extends Storage {
     content: Buffer | string,
   ): Promise<Response> {
     try {
-      const result = await fse.appendFile(this._fullPath(location), content);
+      const result = await fse.appendFile(this.#fullPath(location), content);
       return { raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -73,9 +73,9 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async copy(src: string, dest: string): Promise<Response> {
     try {
-      const result = await fse.copy(this._fullPath(src), this._fullPath(dest));
+      const result = await fse.copy(this.#fullPath(src), this.#fullPath(dest));
       return { raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, `${src} -> ${dest}`);
     }
   }
@@ -85,16 +85,16 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async delete(location: string): Promise<DeleteResponse> {
     try {
-      const result = await fse.unlink(this._fullPath(location));
+      const result = await fse.unlink(this.#fullPath(location));
       return { raw: result, wasDeleted: true };
-    } catch (e) {
-      e = handleError(e, location);
+    } catch (e: any) {
+      const handledError = handleError(e, location);
 
-      if (e instanceof FileNotFound) {
+      if (handledError instanceof FileNotFound) {
         return { raw: undefined, wasDeleted: false };
       }
 
-      throw e;
+      throw handledError;
     }
   }
 
@@ -110,9 +110,9 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async exists(location: string): Promise<ExistsResponse> {
     try {
-      const result = await fse.pathExists(this._fullPath(location));
+      const result = await fse.pathExists(this.#fullPath(location));
       return { exists: result, raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -125,9 +125,9 @@ export class LocalFileSystemStorage extends Storage {
     encoding = 'utf-8',
   ): Promise<ContentResponse<string>> {
     try {
-      const result = await fse.readFile(this._fullPath(location), encoding);
+      const result = await fse.readFile(this.#fullPath(location), encoding);
       return { content: result, raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -137,9 +137,9 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async getBuffer(location: string): Promise<ContentResponse<Buffer>> {
     try {
-      const result = await fse.readFile(this._fullPath(location));
+      const result = await fse.readFile(this.#fullPath(location));
       return { content: result, raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -149,13 +149,13 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async getStat(location: string): Promise<StatResponse> {
     try {
-      const stat = await fse.stat(this._fullPath(location));
+      const stat = await fse.stat(this.#fullPath(location));
       return {
         size: stat.size,
         modified: stat.mtime,
         raw: stat,
       };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -164,7 +164,7 @@ export class LocalFileSystemStorage extends Storage {
    * Returns a read stream for a file location.
    */
   public getStream(location: string): NodeJS.ReadableStream {
-    return fse.createReadStream(this._fullPath(location));
+    return fse.createReadStream(this.#fullPath(location));
   }
 
   /**
@@ -172,9 +172,9 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async move(src: string, dest: string): Promise<Response> {
     try {
-      const result = await fse.move(this._fullPath(src), this._fullPath(dest));
+      const result = await fse.move(this.#fullPath(src), this.#fullPath(dest));
       return { raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, `${src} -> ${dest}`);
     }
   }
@@ -190,7 +190,7 @@ export class LocalFileSystemStorage extends Storage {
       const { content: actualContent } = await this.get(location, 'utf-8');
 
       return this.put(location, `${content}${actualContent}`);
-    } catch (e) {
+    } catch (e: any) {
       if (e instanceof FileNotFound) {
         return this.put(location, content);
       }
@@ -206,7 +206,7 @@ export class LocalFileSystemStorage extends Storage {
     location: string,
     content: Buffer | NodeJS.ReadableStream | string,
   ): Promise<Response> {
-    const fullPath = this._fullPath(location);
+    const fullPath = this.#fullPath(location);
 
     try {
       if (isReadableStream(content)) {
@@ -219,7 +219,7 @@ export class LocalFileSystemStorage extends Storage {
 
       const result = await fse.outputFile(fullPath, content);
       return { raw: result };
-    } catch (e) {
+    } catch (e: any) {
       throw handleError(e, location);
     }
   }
@@ -228,11 +228,11 @@ export class LocalFileSystemStorage extends Storage {
    * List files with a given prefix.
    */
   public flatList(prefix = ''): AsyncIterable<FileListResponse> {
-    const fullPrefix = this._fullPath(prefix);
-    return this._flatDirIterator(fullPrefix, prefix);
+    const fullPrefix = this.#fullPath(prefix);
+    return this.#flatDirIterator(fullPrefix, prefix);
   }
 
-  private async *_flatDirIterator(
+  async *#flatDirIterator(
     prefix: string,
     originalPrefix: string,
   ): AsyncIterable<FileListResponse> {
@@ -240,15 +240,15 @@ export class LocalFileSystemStorage extends Storage {
       prefix[prefix.length - 1] === sep ? prefix : dirname(prefix);
 
     try {
-      const dir = await fs.opendir(prefixDirectory);
+      const dir = await opendir(prefixDirectory);
 
       for await (const file of dir) {
         const fileName = join(prefixDirectory, file.name);
         if (fileName.startsWith(prefix)) {
           if (file.isDirectory()) {
-            yield* this._flatDirIterator(join(fileName, sep), originalPrefix);
+            yield* this.#flatDirIterator(join(fileName, sep), originalPrefix);
           } else if (file.isFile()) {
-            const path = relative(this.$root, fileName);
+            const path = relative(this.#root, fileName);
             yield {
               raw: null,
               path,
@@ -256,7 +256,7 @@ export class LocalFileSystemStorage extends Storage {
           }
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       if (e.code !== 'ENOENT') {
         throw handleError(e, originalPrefix);
       }

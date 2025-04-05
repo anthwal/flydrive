@@ -5,8 +5,8 @@
  * @copyright Slynova - Romain Lanz <romain.lanz@slynova.ch>
  */
 
-import { promisify } from 'util';
-import { pipeline as nodePipeline } from 'stream';
+import { promisify } from 'node:util';
+import { pipeline as nodePipeline } from 'node:stream';
 
 /**
  * Returns a boolean indication if stream param

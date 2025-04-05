@@ -90,7 +90,7 @@ describe('GCS Driver', () => {
 
     try {
       await storage.get('bad.txt');
-    } catch (e) {
+    } catch (e: any) {
       expect(e).toBeInstanceOf(FileNotFound);
     }
   });
