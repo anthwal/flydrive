@@ -30,7 +30,7 @@ import {
   UnknownException,
   AuthorizationRequired,
   WrongKeyPath,
-} from '@slynova/flydrive';
+} from '@anthwal/flydrive';
 
 function handleError(
   err: Error & { code?: number | string },
@@ -64,7 +64,7 @@ export class GoogleCloudStorage extends Storage {
     this.$bucket = this.$driver.bucket(config.bucket);
   }
 
-  private _file(path: string): File {
+  #file(path: string): File {
     return this.$bucket.file(path);
   }
 
@@ -72,8 +72,8 @@ export class GoogleCloudStorage extends Storage {
    * Copy a file to a location.
    */
   public async copy(src: string, dest: string): Promise<Response> {
-    const srcFile = this._file(src);
-    const destFile = this._file(dest);
+    const srcFile = this.#file(src);
+    const destFile = this.#file(dest);
 
     try {
       const result = await srcFile.copy(destFile);
@@ -88,7 +88,7 @@ export class GoogleCloudStorage extends Storage {
    */
   public async delete(location: string): Promise<DeleteResponse> {
     try {
-      const result = await this._file(location).delete();
+      const result = await this.#file(location).delete();
       return { raw: result, wasDeleted: true };
     } catch (e: any) {
       const handledError = handleError(e, location);
@@ -113,7 +113,7 @@ export class GoogleCloudStorage extends Storage {
    */
   public async exists(location: string): Promise<ExistsResponse> {
     try {
-      const result = await this._file(location).exists();
+      const result = await this.#file(location).exists();
       return { exists: result[0], raw: result };
     } catch (e: any) {
       throw handleError(e, location);
@@ -129,7 +129,7 @@ export class GoogleCloudStorage extends Storage {
     encoding: BufferEncoding = 'utf-8',
   ): Promise<ContentResponse<string>> {
     try {
-      const result = await this._file(location).download();
+      const result = await this.#file(location).download();
       return { content: result[0].toString(encoding), raw: result };
     } catch (e: any) {
       throw handleError(e, location);
@@ -141,7 +141,7 @@ export class GoogleCloudStorage extends Storage {
    */
   public async getBuffer(location: string): Promise<ContentResponse<Buffer>> {
     try {
-      const result = await this._file(location).download();
+      const result = await this.#file(location).download();
       return { content: result[0], raw: result };
     } catch (e: any) {
       throw handleError(e, location);
@@ -157,7 +157,7 @@ export class GoogleCloudStorage extends Storage {
   ): Promise<SignedUrlResponse> {
     const { expiry = 900 } = options;
     try {
-      const result = await this._file(location).getSignedUrl({
+      const result = await this.#file(location).getSignedUrl({
         action: 'read',
         expires: Date.now() + expiry * 1000,
       });
@@ -172,7 +172,7 @@ export class GoogleCloudStorage extends Storage {
    */
   public async getStat(location: string): Promise<StatResponse> {
     try {
-      const result = await this._file(location).getMetadata();
+      const result = await this.#file(location).getMetadata();
       return {
         size: Number(result[0].size),
         modified: result[0].updated ? new Date(result[0].updated) : undefined,
@@ -187,7 +187,7 @@ export class GoogleCloudStorage extends Storage {
    * Returns the stream for the given file.
    */
   public getStream(location: string): NodeJS.ReadableStream {
-    return this._file(location).createReadStream();
+    return this.#file(location).createReadStream();
   }
 
   /**
@@ -203,8 +203,8 @@ export class GoogleCloudStorage extends Storage {
    * Move file to a new location.
    */
   public async move(src: string, dest: string): Promise<Response> {
-    const srcFile = this._file(src);
-    const destFile = this._file(dest);
+    const srcFile = this.#file(src);
+    const destFile = this.#file(dest);
 
     try {
       const result = await srcFile.move(destFile);
@@ -222,7 +222,7 @@ export class GoogleCloudStorage extends Storage {
     location: string,
     content: Buffer | NodeJS.ReadableStream | string,
   ): Promise<Response> {
-    const file = this._file(location);
+    const file = this.#file(location);
 
     try {
       if (isReadableStream(content)) {
@@ -250,9 +250,7 @@ export class GoogleCloudStorage extends Storage {
 
     do {
       try {
-        const result = (await this.$bucket.getFiles(
-          nextQuery,
-        )) as GetFilesResponse;
+        const result: GetFilesResponse = await this.$bucket.getFiles(nextQuery);
 
         nextQuery = result[1];
         for (const file of result[0]) {

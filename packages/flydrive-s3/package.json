@@ -1,8 +1,8 @@
 {
-  "name": "@slynova/flydrive-s3",
+  "name": "@anthwal/flydrive-s3",
   "version": "1.0.3",
-  "description": "AWS S3 driver for @slynova/flydrive",
-  "homepage": "https://github.com/Slynova-Org/flydrive#readme",
+  "description": "AWS S3 driver for @anthwal/flydrive",
+  "homepage": "https://github.com/anthwal/flydrive#readme",
   "license": "MIT",
   "main": "build/index.js",
   "types": "build/index.d.ts",
