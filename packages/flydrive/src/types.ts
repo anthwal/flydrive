@@ -19,6 +19,16 @@ export type StorageManagerSingleDiskConfig =
       config: unknown;
     };
 
+export type ParsedRangeResult = {
+  parsedRange: {
+    start: number;
+    end: number;
+  };
+  contentLength: number;
+  rangeRequestHeader: string;
+  rangeResponseHeader: string;
+};
+
 export interface StorageManagerDiskConfig {
   [key: string]: StorageManagerSingleDiskConfig;
 }
@@ -41,6 +51,12 @@ export interface ExistsResponse extends Response {
 
 export interface ContentResponse<ContentType> extends Response {
   content: ContentType;
+}
+
+export interface PartialResponse {
+  stream: NodeJS.ReadableStream;
+  rangeResult: ParsedRangeResult;
+  size: number;
 }
 
 export interface SignedUrlOptions {

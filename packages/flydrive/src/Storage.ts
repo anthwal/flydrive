@@ -16,7 +16,10 @@ import {
   StatResponse,
   FileListResponse,
   DeleteResponse,
+  PartialResponse,
+  ParsedRangeResult,
 } from './types';
+import rangeParser from 'range-parser';
 
 export default abstract class Storage {
   /**
@@ -111,11 +114,19 @@ export default abstract class Storage {
    *
    * Supported drivers: "local", "s3", "gcs"
    */
-  getStream(
-    location: string,
-    opts: { partial?: boolean } = { partial: false },
-  ): NodeJS.ReadableStream {
+  getStream(location: string): NodeJS.ReadableStream {
     throw new MethodNotSupported('getStream', this.constructor.name);
+  }
+
+  /**
+   * Returns partial stream with range bytes
+   * and full size of the requested file.
+   */
+  getPartialStream(
+    location: string,
+    options?: { rangeString?: string },
+  ): PartialResponse | Promise<PartialResponse> {
+    throw new MethodNotSupported('getPartialStream', this.constructor.name);
   }
 
   /**
@@ -167,5 +178,19 @@ export default abstract class Storage {
    */
   flatList(prefix?: string): AsyncIterable<FileListResponse> {
     throw new MethodNotSupported('flatList', this.constructor.name);
+  }
+
+  public parseRange(range: string, fileSize: number): ParsedRangeResult {
+    const parseResult = rangeParser(fileSize, range);
+    if (parseResult === -1 || parseResult === -2 || parseResult.length !== 1) {
+      throw new Error('Invalid range passed');
+    }
+    const rangeObject = parseResult[0];
+    return {
+      parsedRange: rangeObject,
+      contentLength: rangeObject.end - rangeObject.start + 1,
+      rangeRequestHeader: `bytes=${rangeObject.start}-${rangeObject.end}`,
+      rangeResponseHeader: `bytes ${rangeObject.start}-${rangeObject.end}/${fileSize}`,
+    };
   }
 }

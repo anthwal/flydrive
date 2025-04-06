@@ -7,7 +7,7 @@
 
 import Storage from '../src/Storage';
 import StorageManager from '../src/StorageManager';
-import { LocalFileSystemStorage } from '../src/LocalFileSystemStorage';
+import { LocalFileSystemStorage } from '../src';
 
 describe('Storage Manager', () => {
   test('throw exception when no disk name is defined', () => {
@@ -33,7 +33,7 @@ describe('Storage Manager', () => {
     const storageManager = new StorageManager({
       default: 'local',
       disks: {
-        // @ts-expect-error
+        // @ts-expect-error test for missing driver
         local: {},
       },
     });

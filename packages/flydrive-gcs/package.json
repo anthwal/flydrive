@@ -28,10 +28,11 @@
     "prepare": "tsc -b tsconfig.json"
   },
   "peerDependencies": {
-    "@anthwal/flydrive": "^1.1.0"
+    "@anthwal/flydrive": "^1.1.1"
   },
   "devDependencies": {
-    "@anthwal/flydrive": "^1.1.0",
+    "@anthwal/flydrive": "^1.1.1",
+    "@types/fs-extra": "^9.0.13",
     "@types/node": "^22.14.0"
   },
   "publishConfig": {
@@ -39,10 +40,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Slynova-Org/flydrive.git"
+    "url": "git+https://github.com/anthwal/flydrive.git"
   },
   "bugs": {
-    "url": "https://github.com/Slynova-Org/flydrive/issues"
+    "url": "https://github.com/anthwal/flydrive/issues"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0"

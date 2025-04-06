@@ -22,8 +22,14 @@ import {
   StatResponse,
   FileListResponse,
   DeleteResponse,
+  PartialResponse,
 } from './types';
 
+/**
+ * Returns file handling errors
+ * @param err
+ * @param location
+ */
 function handleError(
   err: Error & { code: string; path?: string },
   location: string,
@@ -165,6 +171,28 @@ export class LocalFileSystemStorage extends Storage {
    */
   public getStream(location: string): NodeJS.ReadableStream {
     return fse.createReadStream(this.#fullPath(location));
+  }
+
+  /**
+   * Returns partial stream with range bytes
+   * and full content length of the requested file.
+   */
+  public async getPartialStream(
+    location: string,
+    options: {
+      rangeString: string;
+    },
+  ): Promise<PartialResponse> {
+    const stats = await this.getStat(location);
+    const parsedRange = this.parseRange(options.rangeString, stats.size);
+    return {
+      stream: fse.createReadStream(this.#fullPath(location), {
+        start: parsedRange.parsedRange.start,
+        end: parsedRange.parsedRange.end,
+      }),
+      rangeResult: parsedRange,
+      size: stats.size,
+    };
   }
 
   /**
