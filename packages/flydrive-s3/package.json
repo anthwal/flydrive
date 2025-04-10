@@ -1,6 +1,6 @@
 {
   "name": "@anthwal/flydrive-s3",
-  "version": "1.0.3",
+  "version": "1.2.1",
   "description": "AWS S3 driver for @anthwal/flydrive",
   "homepage": "https://github.com/anthwal/flydrive#readme",
   "license": "MIT",
@@ -19,9 +19,17 @@
   ],
   "author": "Romain Lanz <romain.lanz@slynova.ch>",
   "contributors": [
-    "Harminder Virk <virk@adonisjs.com>",
-    "Michaël Zasso <targos@pm.me>",
-    "Arun Anthwal"
+    {
+      "name": "Harminder Virk",
+      "email": "virk@adonisjs.com"
+    },
+    {
+      "name": "Michaël Zasso",
+      "email": "targos@pm.me"
+    },
+    {
+      "name": "Arun Anthwal"
+    }
   ],
   "files": [
     "build"
