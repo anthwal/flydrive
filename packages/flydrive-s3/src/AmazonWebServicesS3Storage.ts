@@ -217,6 +217,28 @@ export class AmazonWebServicesS3Storage extends Storage {
   }
 
   /**
+   * Returns partial stream with range bytes
+   * and full content length of the requested file.
+   */
+  public async getPartialStream(
+    location: string,
+    options: { rangeString: string },
+  ) {
+    const stats = await this.getStat(location);
+    const parsedRange = this.parseRange(options.rangeString, stats.size);
+    const command = new GetObjectCommand({
+      Key: location,
+      Bucket: this.$bucket,
+      Range: parsedRange.rangeRequestHeader,
+    });
+    return {
+      stream: (await this.$driver.send(command)).Body as Readable,
+      rangeResult: parsedRange,
+      size: stats.size,
+    };
+  }
+
+  /**
    * Returns url for a given key.
    */
   // public getUrl(location: string): string {
