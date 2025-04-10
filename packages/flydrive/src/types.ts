@@ -78,7 +78,7 @@ export interface StatResponse extends Response {
 }
 
 export interface FileListResponse extends Response {
-  path: string;
+  path: string | undefined;
 }
 
 export interface DeleteResponse extends Response {

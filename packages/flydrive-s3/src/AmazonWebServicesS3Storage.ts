@@ -5,7 +5,17 @@
  * @copyright Slynova - Romain Lanz <romain.lanz@slynova.ch>
  */
 
-import S3, { ClientConfiguration, ObjectList } from 'aws-sdk/clients/s3';
+import {
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  S3ClientConfig,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   Storage,
   UnknownException,
@@ -20,7 +30,8 @@ import {
   StatResponse,
   FileListResponse,
   DeleteResponse,
-} from '@slynova/flydrive';
+} from '@anthwal/flydrive';
+import { Readable } from 'node:stream';
 
 function handleError(err: Error, path: string, bucket: string): Error {
   switch (err.name) {
@@ -36,36 +47,30 @@ function handleError(err: Error, path: string, bucket: string): Error {
 }
 
 export class AmazonWebServicesS3Storage extends Storage {
-  protected $driver: S3;
+  protected $driver: S3Client;
   protected $bucket: string;
 
   constructor(config: AmazonWebServicesS3StorageConfig) {
     super();
-
-    // todo: change to v3
-    const S3 = require('aws-sdk/clients/s3');
-
-    this.$driver = new S3({
-      accessKeyId: config.key,
-      secretAccessKey: config.secret,
+    this.$driver = new S3Client({
+      region: config.region,
+      credentials: { secretAccessKey: config.secret, accessKeyId: config.key },
       ...config,
     });
-
     this.$bucket = config.bucket;
   }
 
   /**
-   * Copy a file to a location.
+   * Copy a file to a location within the same bucket.
    */
   public async copy(src: string, dest: string): Promise<Response> {
-    const params = {
-      Key: dest,
-      Bucket: this.$bucket,
-      CopySource: `/${this.$bucket}/${src}`,
-    };
-
     try {
-      const result = await this.$driver.copyObject(params).promise();
+      const command = new CopyObjectCommand({
+        Key: dest,
+        Bucket: this.$bucket,
+        CopySource: `${this.$bucket}/${src}`,
+      });
+      const result = await this.$driver.send(command);
       return { raw: result };
     } catch (e: any) {
       throw handleError(e, src, this.$bucket);
@@ -76,11 +81,12 @@ export class AmazonWebServicesS3Storage extends Storage {
    * Delete existing file.
    */
   public async delete(location: string): Promise<DeleteResponse> {
-    const params = { Key: location, Bucket: this.$bucket };
-
     try {
-      const result = await this.$driver.deleteObject(params).promise();
-      // Amazon does not inform the client if anything was deleted.
+      const command = new DeleteObjectCommand({
+        Key: location,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
       return { raw: result, wasDeleted: null };
     } catch (e: any) {
       throw handleError(e, location, this.$bucket);
@@ -90,7 +96,7 @@ export class AmazonWebServicesS3Storage extends Storage {
   /**
    * Returns the driver.
    */
-  public driver(): S3 {
+  public driver(): S3Client {
     return this.$driver;
   }
 
@@ -98,10 +104,12 @@ export class AmazonWebServicesS3Storage extends Storage {
    * Determines if a file or folder already exists.
    */
   public async exists(location: string): Promise<ExistsResponse> {
-    const params = { Key: location, Bucket: this.$bucket };
-
     try {
-      const result = await this.$driver.headObject(params).promise();
+      const command = new HeadObjectCommand({
+        Key: location,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
       return { exists: true, raw: result };
     } catch (e: any) {
       if (e.statusCode === 404) {
@@ -119,26 +127,36 @@ export class AmazonWebServicesS3Storage extends Storage {
     location: string,
     encoding: BufferEncoding = 'utf-8',
   ): Promise<ContentResponse<string>> {
-    const bufferResult = await this.getBuffer(location);
-    return {
-      content: bufferResult.content.toString(encoding),
-      raw: bufferResult.raw,
-    };
+    try {
+      const command = new GetObjectCommand({
+        Key: location,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
+      const body = (await result?.Body?.transformToString(encoding)) ?? '';
+      return {
+        content: body,
+        raw: result,
+      };
+    } catch (e: any) {
+      throw handleError(e, location, this.$bucket);
+    }
   }
 
   /**
    * Returns the file contents as Buffer.
    */
   public async getBuffer(location: string): Promise<ContentResponse<Buffer>> {
-    const params = { Key: location, Bucket: this.$bucket };
-
     try {
-      const result = await this.$driver.getObject(params).promise();
-
-      // S3.getObject returns a Buffer in Node.js
-      const body = result.Body as Buffer;
-
-      return { content: body, raw: result };
+      const command = new GetObjectCommand({
+        Key: location,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
+      const body =
+        (await result?.Body?.transformToByteArray()) ?? new Uint8Array();
+      const bodyBuffer = Buffer.from(body);
+      return { content: bodyBuffer, raw: result };
     } catch (e: any) {
       throw handleError(e, location, this.$bucket);
     }
@@ -151,20 +169,16 @@ export class AmazonWebServicesS3Storage extends Storage {
     location: string,
     options: SignedUrlOptions = {},
   ): Promise<SignedUrlResponse> {
-    const { expiry = 900 } = options;
-
+    const { expiry = 3600 } = options;
     try {
-      const params = {
+      const command = new GetObjectCommand({
         Key: location,
         Bucket: this.$bucket,
-        Expires: expiry,
-      };
-
-      const result = await this.$driver.getSignedUrlPromise(
-        'getObject',
-        params,
-      );
-      return { signedUrl: result, raw: result };
+      });
+      const url = await getSignedUrl(this.$driver, command, {
+        expiresIn: expiry,
+      });
+      return { signedUrl: url, raw: url };
     } catch (e: any) {
       throw handleError(e, location, this.$bucket);
     }
@@ -174,13 +188,15 @@ export class AmazonWebServicesS3Storage extends Storage {
    * Returns file's size and modification date.
    */
   public async getStat(location: string): Promise<StatResponse> {
-    const params = { Key: location, Bucket: this.$bucket };
-
     try {
-      const result = await this.$driver.headObject(params).promise();
+      const command = new HeadObjectCommand({
+        Key: location,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
       return {
-        size: result.ContentLength as number,
-        modified: result.LastModified as Date,
+        size: result?.ContentLength ?? 0,
+        modified: result.LastModified,
         raw: result,
       };
     } catch (e: any) {
@@ -191,24 +207,27 @@ export class AmazonWebServicesS3Storage extends Storage {
   /**
    * Returns the stream for the given file.
    */
-  public getStream(location: string): NodeJS.ReadableStream {
-    const params = { Key: location, Bucket: this.$bucket };
-
-    return this.$driver.getObject(params).createReadStream();
+  public async getStream(location: string): Promise<Readable> {
+    const command = new GetObjectCommand({
+      Key: location,
+      Bucket: this.$bucket,
+    });
+    const result = await this.$driver.send(command);
+    return result?.Body as Readable;
   }
 
   /**
    * Returns url for a given key.
    */
-  public getUrl(location: string): string {
-    const { href } = this.$driver.endpoint;
-
-    if (href.startsWith('https://s3.amazonaws')) {
-      return `https://${this.$bucket}.s3.amazonaws.com/${location}`;
-    }
-
-    return `${href}${this.$bucket}/${location}`;
-  }
+  // public getUrl(location: string): string {
+  //   const { href } = this.$driver.endpoint;
+  //
+  //   if (href.startsWith('https://s3.amazonaws')) {
+  //     return `https://${this.$bucket}.s3.amazonaws.com/${location}`;
+  //   }
+  //
+  //   return `${href}${this.$bucket}/${location}`;
+  // }
 
   /**
    * Moves file from one location to another. This
@@ -227,11 +246,20 @@ export class AmazonWebServicesS3Storage extends Storage {
    */
   public async put(
     location: string,
-    content: Buffer | NodeJS.ReadableStream | string,
+    content: Buffer | NodeJS.ReadableStream | Readable | string,
   ): Promise<Response> {
-    const params = { Key: location, Body: content, Bucket: this.$bucket };
     try {
-      const result = await this.$driver.upload(params).promise();
+      const newContent =
+        content instanceof ReadableStream
+          ? Readable.from(content)
+          : (content as string | Buffer | Readable);
+
+      const command = new PutObjectCommand({
+        Key: location,
+        Body: newContent,
+        Bucket: this.$bucket,
+      });
+      const result = await this.$driver.send(command);
       return { raw: result };
     } catch (e: any) {
       throw handleError(e, location, this.$bucket);
@@ -246,21 +274,19 @@ export class AmazonWebServicesS3Storage extends Storage {
 
     do {
       try {
-        const response = await this.$driver
-          .listObjectsV2({
-            Bucket: this.$bucket,
-            Prefix: prefix,
-            ContinuationToken: continuationToken,
-            MaxKeys: 1000,
-          })
-          .promise();
-
+        const command = new ListObjectsV2Command({
+          Bucket: this.$bucket,
+          MaxKeys: 1000,
+          ContinuationToken: continuationToken,
+          Prefix: prefix,
+        });
+        const response = await this.$driver.send(command);
         continuationToken = response.NextContinuationToken;
 
-        for (const file of response.Contents as ObjectList) {
+        for (const file of response.Contents ?? []) {
           yield {
             raw: file,
-            path: file.Key as string,
+            path: file.Key,
           };
         }
       } catch (e: any) {
@@ -270,7 +296,7 @@ export class AmazonWebServicesS3Storage extends Storage {
   }
 }
 
-export interface AmazonWebServicesS3StorageConfig extends ClientConfiguration {
+export interface AmazonWebServicesS3StorageConfig extends S3ClientConfig {
   key: string;
   secret: string;
   bucket: string;

@@ -20,7 +20,8 @@
   "author": "Romain Lanz <romain.lanz@slynova.ch>",
   "contributors": [
     "Harminder Virk <virk@adonisjs.com>",
-    "Michaël Zasso <targos@pm.me>"
+    "Michaël Zasso <targos@pm.me>",
+    "Arun Anthwal"
   ],
   "files": [
     "build"
@@ -29,13 +30,14 @@
     "prepare": "tsc -b tsconfig.json"
   },
   "dependencies": {
-    "aws-sdk": "^2.852.0"
+    "@aws-sdk/client-s3": "^3.782.0",
+    "@aws-sdk/s3-request-presigner": "^3.782.0"
   },
   "peerDependencies": {
-    "@slynova/flydrive": "^1.0.3"
+    "@anthwal/flydrive": "^1.2.0"
   },
   "devDependencies": {
-    "@slynova/flydrive": "^1.0.3",
+    "@anthwal/flydrive": "^1.2.0",
     "@types/fs-extra": "^9.0.7",
     "@types/node": "^22.14.0",
     "fs-extra": "^9.1.0"
@@ -45,9 +47,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Slynova-Org/flydrive.git"
+    "url": "git+https://github.com/anthwal/flydrive.git"
   },
   "bugs": {
-    "url": "https://github.com/Slynova-Org/flydrive/issues"
+    "url": "https://github.com/anthwal/flydrive/issues"
   }
 }
