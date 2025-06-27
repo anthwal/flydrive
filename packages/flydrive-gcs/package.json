@@ -1,6 +1,6 @@
 {
   "name": "@anthwal/flydrive-gcs",
-  "version": "1.0.3",
+  "version": "1.2.2",
   "description": "Google Cloud Storage driver for @anthwal/flydrive",
   "homepage": "https://github.com/anthwal/flydrive#readme",
   "license": "MIT",
