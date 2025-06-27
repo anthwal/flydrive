@@ -1,6 +1,6 @@
 {
   "name": "@anthwal/flydrive-s3",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "AWS S3 driver for @anthwal/flydrive",
   "homepage": "https://github.com/anthwal/flydrive#readme",
   "license": "MIT",
