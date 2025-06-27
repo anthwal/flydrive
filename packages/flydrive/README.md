@@ -236,17 +236,15 @@ const stream = await storage.disk('local').getStream('foo.txt');
 
 
 <details>
-<summary markdown="span"><code>getPartialStream(location: string, options: {
-      rangeString: string;
-    }): Promise&lt;PartialResponse&gt;</code></summary>
+<summary markdown="span"><code>getPartialStream(location: string, options: { rangeString: string }): Promise&lt;PartialResponse&gt;</code></summary>
 
-This method will return a Node.js partial partial stream with range bytes
+This method will return a Node.js partial stream with range bytes
 and full content length of the given file.
 
 ```javascript
 // Supported drivers: "local", "s3", "gcs"
 
-const stream = await storage.disk('local').getStream('foo.txt');
+const stream = await storage.disk('local').getPartialStream('foo.txt');
 ```
 
 </details>

@@ -30,7 +30,9 @@ import {
   UnknownException,
   AuthorizationRequired,
   WrongKeyPath,
+  PartialResponse,
 } from '@anthwal/flydrive';
+import { Readable } from 'node:stream';
 
 function handleError(
   err: Error & { code?: number | string },
@@ -184,18 +186,42 @@ export class GoogleCloudStorage extends Storage {
   /**
    * Returns the stream for the given file.
    */
-  public getStream(location: string): NodeJS.ReadableStream {
+  public async getStream(location: string): Promise<Readable> {
     return this.#file(location).createReadStream();
   }
 
   /**
-   * Returns URL for a given location. Note this method doesn't
-   * validate the existence of file, or it's visibility
-   * status.
+   * Returns partial stream with range bytes
+   * and full content length of the requested file
+   * @param location
+   * @param options
    */
-  public getUrl(location: string): string {
-    return `https://storage.googleapis.com/${this.$bucket.name}/${location}`;
+  public async getPartialStream(
+    location: string,
+    options: {
+      rangeString: string;
+    },
+  ): Promise<PartialResponse> {
+    const stats = await this.getStat(location);
+    const parsedRange = this.parseRange(options.rangeString, stats.size);
+    return {
+      stream: this.#file(location).createReadStream({
+        start: parsedRange.parsedRange.start,
+        end: parsedRange.parsedRange.end,
+      }),
+      rangeResult: parsedRange,
+      size: stats.size,
+    };
   }
+
+  // /**
+  //  * Returns URL for a given location. Note this method doesn't
+  //  * validate the existence of file, or it's visibility
+  //  * status.
+  //  */
+  // public getUrl(location: string): string {
+  //   return `https://storage.googleapis.com/${this.$bucket.name}/${location}`;
+  // }
 
   /**
    * Move file to a new location.
@@ -218,7 +244,7 @@ export class GoogleCloudStorage extends Storage {
    */
   public async put(
     location: string,
-    content: Buffer | NodeJS.ReadableStream | string,
+    content: Buffer | NodeJS.ReadableStream | Readable | string,
   ): Promise<Response> {
     const file = this.#file(location);
 

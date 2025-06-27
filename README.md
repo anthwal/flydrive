@@ -239,17 +239,38 @@ const stream = storage.disk('local').getStream('foo.txt');
 </details>
 
 <details>
-<summary markdown="span"><code>getUrl(location: string): string</code></summary>
+<summary markdown="span"><code>getPartialStream(location: string, options: { rangeString: string }): Promise&lt;PartialResponse&gt;</code></summary>
 
-This method will return a public URL for a given file.
+This method will return a Node.js partial stream with range bytes
+and full content length of the given file.
 
 ```javascript
-// Supported drivers: "s3", "gcs"
+// Supported drivers: "local", "s3", "gcs"
 
-const uri = storage.disk('awsCloud').getUrl('foo.txt');
+const stream = await storage.disk('local').getPartialStream('foo.txt');
 ```
 
 </details>
+
+[//]: # (<details>)
+
+[//]: # (<summary markdown="span"><code>getUrl&#40;location: string&#41;: string</code></summary>)
+
+[//]: # ()
+[//]: # (This method will return a public URL for a given file.)
+
+[//]: # ()
+[//]: # (```javascript)
+
+[//]: # (// Supported drivers: "s3", "gcs")
+
+[//]: # ()
+[//]: # (const uri = storage.disk&#40;'awsCloud'&#41;.getUrl&#40;'foo.txt'&#41;;)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (</details>)
 
 <details>
 <summary markdown="span"><code>move(src: string, dest: string): Promise&lt;Response&gt;</code></summary>

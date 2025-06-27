@@ -24,6 +24,7 @@ import {
   DeleteResponse,
   PartialResponse,
 } from './types';
+import { Readable } from 'node:stream';
 
 /**
  * Returns file handling errors
@@ -232,7 +233,7 @@ export class LocalFileSystemStorage extends Storage {
    */
   public async put(
     location: string,
-    content: Buffer | NodeJS.ReadableStream | string,
+    content: Buffer | NodeJS.ReadableStream | Readable | string,
   ): Promise<Response> {
     const fullPath = this.#fullPath(location);
 
