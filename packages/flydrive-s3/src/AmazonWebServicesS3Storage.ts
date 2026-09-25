@@ -54,7 +54,14 @@ export class AmazonWebServicesS3Storage extends Storage {
     super();
     this.$driver = new S3Client({
       region: config.region,
-      credentials: { secretAccessKey: config.secret, accessKeyId: config.key },
+      ...(config.secret && config.key
+        ? {
+            credentials: {
+              secretAccessKey: config.secret,
+              accessKeyId: config.key,
+            },
+          }
+        : {}),
       ...config,
     });
     this.$bucket = config.bucket;
